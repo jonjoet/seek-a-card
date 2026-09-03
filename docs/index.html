@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#17324d">
+    <meta name="color-scheme" content="light">
+    <meta name="referrer" content="no-referrer">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; font-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'; worker-src 'self'; manifest-src 'self'">
+    <meta name="description" content="A safe, offline-friendly deck of picture cards for a family questions-and-guessing game.">
+    <title>Seek-a-Card</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+    <script src="cards.js" defer></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <button class="icon-button" id="home-button" type="button" aria-label="Return to deck setup" hidden>
+          <span aria-hidden="true">←</span>
+        </button>
+        <div class="brand" aria-label="Seek-a-Card">
+          <span class="brand-mark" aria-hidden="true">?</span>
+          <span>Seek-a-Card</span>
+        </div>
+        <div class="header-actions">
+          <button class="icon-button" id="info-button" type="button" aria-label="About this game">
+            <span aria-hidden="true">i</span>
+          </button>
+          <button class="icon-button" id="settings-button" type="button" aria-label="Parent settings">
+            <span aria-hidden="true">⚙</span>
+          </button>
+        </div>
+      </header>
+
+      <main>
+        <section class="view start-view" id="start-view" aria-labelledby="start-title">
+          <div class="intro-card">
+            <div class="card-fan" aria-hidden="true">
+              <span class="fan-card fan-card-back"></span>
+              <span class="fan-card fan-card-front">?</span>
+            </div>
+            <div>
+              <p class="eyebrow">A picture guessing game</p>
+              <h1 id="start-title">Pick a deck. Ask good questions.</h1>
+              <p class="intro-copy">One person sees the secret card. Everyone else gets up to twenty yes-or-no questions to guess it.</p>
+            </div>
+          </div>
+
+          <fieldset class="control-group">
+            <legend>Choose categories</legend>
+            <div class="category-grid" id="category-controls"></div>
+          </fieldset>
+
+          <fieldset class="control-group">
+            <legend>Choose a challenge</legend>
+            <div class="choice-row" id="difficulty-controls">
+              <button class="choice-button" type="button" data-difficulty="easy" aria-pressed="true">
+                <strong>Familiar</strong>
+                <span>Common pictures</span>
+              </button>
+              <button class="choice-button" type="button" data-difficulty="all" aria-pressed="false">
+                <strong>Everything</strong>
+                <span>Common + trickier</span>
+              </button>
+            </div>
+          </fieldset>
+
+          <div class="start-actions">
+            <p id="deck-summary" class="deck-summary" aria-live="polite"></p>
+            <button class="primary-button large-button" id="start-button" type="button">Start a round</button>
+          </div>
+        </section>
+
+        <section class="view centered-view" id="pass-view" aria-labelledby="pass-title" hidden>
+          <div class="privacy-card">
+            <div class="closed-eye" aria-hidden="true">◡</div>
+            <p class="eyebrow">Keep it secret</p>
+            <h1 id="pass-title">Pass the device to the clue-giver</h1>
+            <p>Everyone who will be guessing should look away.</p>
+            <button class="primary-button large-button" id="ready-button" type="button">I’m the clue-giver</button>
+          </div>
+        </section>
+
+        <section class="view centered-view" id="secret-view" aria-labelledby="secret-title" hidden>
+          <p class="eyebrow">Your secret card</p>
+          <article class="picture-card secret-card">
+            <img id="secret-image" width="360" height="360" alt="">
+            <h1 id="secret-title"></h1>
+            <p id="secret-category" class="card-category"></p>
+          </article>
+          <button class="primary-button large-button" id="hide-button" type="button">Hide the card and play</button>
+          <button class="text-button" id="skip-button" type="button">Choose a different card</button>
+        </section>
+
+        <section class="view centered-view" id="play-view" aria-labelledby="play-title" hidden>
+          <div class="hidden-card" aria-hidden="true">
+            <span>?</span>
+          </div>
+          <p class="eyebrow">The card is hidden</p>
+          <h1 id="play-title">Ask a yes-or-no question</h1>
+          <div class="question-counter" aria-live="polite">
+            <strong id="question-count">0</strong>
+            <span>of 20 questions</span>
+          </div>
+          <p class="counter-message" id="counter-message">Tap after each question.</p>
+          <div class="counter-controls">
+            <button class="secondary-button counter-button" id="minus-button" type="button" aria-label="Subtract one question">−</button>
+            <button class="primary-button count-button" id="plus-button" type="button">Add a question</button>
+          </div>
+          <div class="round-actions">
+            <button class="success-button" id="guessed-button" type="button">They guessed it!</button>
+            <button class="text-button" id="reveal-button" type="button">Reveal the answer</button>
+          </div>
+        </section>
+
+        <section class="view centered-view" id="result-view" aria-labelledby="result-title" hidden>
+          <p class="eyebrow" id="result-kicker">The answer was</p>
+          <article class="picture-card result-card">
+            <img id="result-image" width="360" height="360" alt="">
+            <h1 id="result-title"></h1>
+            <p id="result-detail" class="card-category"></p>
+          </article>
+          <button class="primary-button large-button" id="next-button" type="button">Next card</button>
+          <button class="text-button" id="change-deck-button" type="button">Change the deck</button>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="settings-dialog" aria-labelledby="settings-title">
+      <div class="dialog-header">
+        <div>
+          <p class="eyebrow">On this device</p>
+          <h2 id="settings-title">Parent settings</h2>
+        </div>
+        <button class="icon-button close-button" data-close-dialog="settings-dialog" type="button" aria-label="Close settings">×</button>
+      </div>
+      <p class="dialog-copy">Hide any cards you do not want in the deck. This changes only this device.</p>
+      <label class="search-label" for="card-search">Find a card</label>
+      <input id="card-search" class="search-input" type="search" inputmode="search" autocomplete="off" maxlength="40" placeholder="Try “shark” or “blue”">
+      <div class="settings-summary" id="settings-summary" aria-live="polite"></div>
+      <div class="card-settings-list" id="card-settings-list"></div>
+      <div class="dialog-actions">
+        <button class="secondary-button" id="show-all-button" type="button">Show every card</button>
+        <button class="secondary-button" id="clear-history-button" type="button">Clear recent cards</button>
+      </div>
+      <button class="primary-button dialog-done" data-close-dialog="settings-dialog" type="button">Done</button>
+    </dialog>
+
+    <dialog id="info-dialog" aria-labelledby="info-title">
+      <div class="dialog-header">
+        <div>
+          <p class="eyebrow">About</p>
+          <h2 id="info-title">A deliberately closed deck</h2>
+        </div>
+        <button class="icon-button close-button" data-close-dialog="info-dialog" type="button" aria-label="Close information">×</button>
+      </div>
+      <p>This app never searches for pictures while you play. Every illustration is bundled with the app, and there are no uploads, advertisements, analytics, or accounts.</p>
+      <p>Your category choices, hidden cards, and recent-card history stay in this browser.</p>
+      <p class="credit-copy">Card artwork: OpenMoji contributors, licensed CC BY-SA 4.0. Application code: MIT License.</p>
+      <button class="primary-button dialog-done" data-close-dialog="info-dialog" type="button">Done</button>
+    </dialog>
+
+    <noscript>
+      <div class="noscript-message">Seek-a-Card needs JavaScript to shuffle and hide the cards.</div>
+    </noscript>
+  </body>
+</html>

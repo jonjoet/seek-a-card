@@ -1,0 +1,26 @@
+{
+  "name": "Seek-a-Card",
+  "short_name": "Seek-a-Card",
+  "description": "A safe, offline-friendly deck of picture cards for a family questions-and-guessing game.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#eef9ff",
+  "theme_color": "#17324d",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "maskable-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
