@@ -15,15 +15,40 @@ const appShell = [
   "./app.js",
   "./manifest.webmanifest",
   "./icon.svg",
-  "./maskable-icon.svg"
+  "./maskable-icon.svg",
+  "./icon-192.png",
+  "./icon-512.png",
+  "./apple-touch-icon.png"
 ].map((path) => new URL(path, scopeUrl).href);
 
+const shellSet = new Set(appShell);
+const artworkUrls = [...safeUrls].filter((href) => !shellSet.has(href));
+
+// Card artwork is precached during install, while the previous worker keeps
+// serving the page. Without this, a deck taken offline before every card had
+// been shown would render the unseen ones as broken images.
+async function warmArtwork(cache) {
+  const pending = [];
+  for (const href of artworkUrls) {
+    if (!(await cache.match(href))) pending.push(href);
+  }
+  const batchSize = 12;
+  for (let index = 0; index < pending.length; index += batchSize) {
+    await Promise.all(
+      pending.slice(index, index + batchSize).map((href) => cache.add(href).catch(() => {
+        // One unreachable illustration must not fail the whole installation.
+      }))
+    );
+  }
+}
+
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(appShell))
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.addAll(appShell);
+    await warmArtwork(cache);
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener("activate", (event) => {

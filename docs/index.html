@@ -3,14 +3,21 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#17324d">
-    <meta name="color-scheme" content="light">
+    <meta name="theme-color" content="#17324d" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0b1a29" media="(prefers-color-scheme: dark)">
+    <meta name="color-scheme" content="light dark">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Seek-a-Card">
     <meta name="referrer" content="no-referrer">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; font-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'; worker-src 'self'; manifest-src 'self'">
     <meta name="description" content="A safe, offline-friendly deck of picture cards for a family questions-and-guessing game.">
     <title>Seek-a-Card</title>
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180">
     <link rel="stylesheet" href="styles.css">
     <script src="cards.js" defer></script>
     <script src="app.js" defer></script>
@@ -129,7 +136,7 @@
       </main>
     </div>
 
-    <dialog id="settings-dialog" aria-labelledby="settings-title">
+    <dialog id="settings-dialog" tabindex="-1" aria-labelledby="settings-title">
       <div class="dialog-header">
         <div>
           <p class="eyebrow">On this device</p>
@@ -149,7 +156,7 @@
       <button class="primary-button dialog-done" data-close-dialog="settings-dialog" type="button">Done</button>
     </dialog>
 
-    <dialog id="info-dialog" aria-labelledby="info-title">
+    <dialog id="info-dialog" tabindex="-1" aria-labelledby="info-title">
       <div class="dialog-header">
         <div>
           <p class="eyebrow">About</p>
@@ -159,7 +166,7 @@
       </div>
       <p>This app never searches for pictures while you play. Every illustration is bundled with the app, and there are no uploads, advertisements, analytics, or accounts.</p>
       <p>Your category choices, hidden cards, and recent-card history stay in this browser.</p>
-      <p class="credit-copy">Card artwork: OpenMoji contributors, licensed CC BY-SA 4.0. Application code: MIT License.</p>
+      <p class="credit-copy">Card artwork: <a href="https://openmoji.org/" rel="noopener noreferrer external">OpenMoji</a> contributors, licensed <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="noopener noreferrer external">CC BY-SA 4.0</a>. Application code: MIT License.</p>
       <button class="primary-button dialog-done" data-close-dialog="info-dialog" type="button">Done</button>
     </dialog>
 

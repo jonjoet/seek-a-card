@@ -12,12 +12,21 @@ import subprocess
 import sys
 from pathlib import Path
 
-from build_assets import validate_svg
+from build_assets import SHELL_FILES, compute_cache_revision, validate_svg
 
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
 CARD_DIR = DOCS / "assets" / "cards"
+
+# The app makes no network requests. These are the only external addresses the
+# shipped files may name, and they exist to satisfy the CC BY-SA 4.0 attribution
+# terms for the bundled artwork.
+ALLOWED_EXTERNAL_URLS = {
+    "https://openmoji.org/",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+}
+EXTERNAL_URL = re.compile(r"""https?://[^\s"'<>)]+""", re.IGNORECASE)
 
 
 def fail(message: str) -> None:
@@ -94,21 +103,45 @@ def audit_runtime(cards: list[dict]) -> None:
     for path in DOCS.iterdir():
         if path.is_file() and path.suffix in {".html", ".css", ".js", ".webmanifest"}:
             text = path.read_text(encoding="utf-8")
-            if re.search(r"https?://", text, re.IGNORECASE):
-                fail(f"External runtime URL in {path.name}")
+            for url in EXTERNAL_URL.findall(text):
+                if url not in ALLOWED_EXTERNAL_URLS:
+                    fail(f"External runtime URL in {path.name}: {url}")
 
     safe_assets = extract_frozen_json(DOCS / "asset-list.js", "self.SEEK_A_CARD_SAFE_ASSETS")
-    asset_list_text = (DOCS / "asset-list.js").read_text(encoding="utf-8")
-    if not re.search(r'self\.SEEK_A_CARD_CACHE_NAME = "seek-a-card-[a-f0-9]{12}";', asset_list_text):
-        fail("Missing content-derived service-worker cache revision")
     expected = {
         "./", "./index.html", "./styles.css", "./cards.js", "./app.js",
         "./service-worker.js", "./asset-list.js", "./manifest.webmanifest",
         "./icon.svg", "./maskable-icon.svg",
+        "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png",
         *{f"./{card['image']}" for card in cards},
     }
     if set(safe_assets) != expected or len(safe_assets) != len(expected):
         fail("Service-worker asset allowlist is incomplete or contains extras")
+
+    for name in SHELL_FILES:
+        if not (DOCS / name).is_file():
+            fail(f"Missing precached shell file: docs/{name}")
+
+
+def audit_cache_revision() -> None:
+    """The cache name must cover the whole shell, not just the card data.
+
+    A stale revision is invisible in the browser and permanent for anyone who
+    already installed the app: the worker's bytes do not change, so no update is
+    ever fetched. Recomputing it here fails the build instead.
+    """
+    recorded = json.loads((ROOT / "ASSET_HASHES.json").read_text(encoding="utf-8"))
+    expected = compute_cache_revision(recorded)
+    asset_list_text = (DOCS / "asset-list.js").read_text(encoding="utf-8")
+    match = re.search(r'self\.SEEK_A_CARD_CACHE_NAME = "seek-a-card-([a-f0-9]{12})";', asset_list_text)
+    if not match:
+        fail("Missing content-derived service-worker cache revision")
+    if match.group(1) != expected:
+        fail(
+            f"Service-worker cache revision is stale (found {match.group(1)}, "
+            f"expected {expected}). Re-run tools/build_assets.py after changing "
+            "any precached file."
+        )
 
 
 def check_javascript() -> None:
@@ -162,6 +195,7 @@ def main() -> None:
     cards = audit_cards()
     audit_hashes(cards)
     audit_runtime(cards)
+    audit_cache_revision()
     check_javascript()
     make_contact_sheet(cards)
     print(f"Audit passed: {len(cards)} cards, exact local allowlist, valid hashes and scripts")

@@ -12,10 +12,56 @@
   --line: #c8d9e4;
   --shadow: 0 18px 50px rgba(23, 50, 77, 0.15);
   --radius: 1.5rem;
+  --canvas: #eef9ff;
+  --glow-warm: rgba(255, 209, 102, 0.55);
+  --glow-cool: rgba(95, 198, 173, 0.28);
+  --surface: rgba(255, 255, 255, 0.94);
+  --surface-soft: rgba(255, 255, 255, 0.88);
+  --card-border: rgba(23, 50, 77, 0.14);
+  --fan-shadow: rgba(23, 50, 77, 0.2);
+  --stripe: #17324d;
+  --disabled-border: #8998a5;
+  --disabled-fill: #9ba9b4;
+  --dialog-shadow: rgba(10, 30, 48, 0.35);
+  --backdrop: rgba(10, 30, 48, 0.68);
+  /* Foreground for the fixed-hue accent fills (sun, mint, coral). These stay
+     light in both themes, so their text and edges must stay dark in both. */
+  --on-accent: #17324d;
+  /* Backing plate for OpenMoji artwork, which is drawn with dark outlines and
+     needs a light ground to stay legible on a dark surface. */
+  --art-plate: transparent;
+  color-scheme: light dark;
   font-family: ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
   color: var(--ink);
-  background: #eef9ff;
+  background: var(--canvas);
   font-synthesis: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #eaf3fb;
+    --ink-soft: #a5b8ca;
+    --paper: #16283a;
+    --sky: #24455f;
+    --sky-deep: #3f7fa3;
+    --coral-dark: #ff8f9b;
+    --mint-dark: #6fd8bd;
+    --line: #33506a;
+    --shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+    --canvas: #0b1a29;
+    --glow-warm: rgba(255, 209, 102, 0.14);
+    --glow-cool: rgba(95, 198, 173, 0.1);
+    --surface: rgba(24, 44, 63, 0.94);
+    --surface-soft: rgba(24, 44, 63, 0.88);
+    --card-border: rgba(234, 243, 251, 0.16);
+    --fan-shadow: rgba(0, 0, 0, 0.45);
+    --stripe: #0f2233;
+    --disabled-border: #46586a;
+    --disabled-fill: #3a4a5a;
+    --dialog-shadow: rgba(0, 0, 0, 0.6);
+    --backdrop: rgba(4, 12, 20, 0.72);
+    --art-plate: #f2f7fb;
+  }
 }
 
 * {
@@ -25,9 +71,9 @@
 html {
   min-height: 100%;
   background:
-    radial-gradient(circle at 8% 8%, rgba(255, 209, 102, 0.55), transparent 22rem),
-    radial-gradient(circle at 92% 20%, rgba(95, 198, 173, 0.28), transparent 22rem),
-    #eef9ff;
+    radial-gradient(circle at 8% 8%, var(--glow-warm), transparent 22rem),
+    radial-gradient(circle at 92% 20%, var(--glow-cool), transparent 22rem),
+    var(--canvas);
 }
 
 body {
@@ -109,7 +155,7 @@ input:focus-visible {
   border: 0.12rem solid var(--line);
   border-radius: 50%;
   color: var(--ink);
-  background: rgba(255, 255, 255, 0.88);
+  background: var(--surface-soft);
   font-size: 1.25rem;
   font-weight: 900;
   cursor: pointer;
@@ -147,9 +193,9 @@ main {
 .privacy-card,
 .picture-card,
 .hidden-card {
-  border: 0.13rem solid rgba(23, 50, 77, 0.14);
+  border: 0.13rem solid var(--card-border);
   border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--surface);
   box-shadow: var(--shadow);
 }
 
@@ -177,7 +223,7 @@ main {
   place-items: center;
   border: 0.2rem solid var(--ink);
   border-radius: 1rem;
-  box-shadow: 0.35rem 0.35rem 0 rgba(23, 50, 77, 0.2);
+  box-shadow: 0.35rem 0.35rem 0 var(--fan-shadow);
 }
 
 .fan-card-back {
@@ -354,8 +400,8 @@ h2 {
 }
 
 .primary-button:disabled {
-  border-color: #8998a5;
-  background: #9ba9b4;
+  border-color: var(--disabled-border);
+  background: var(--disabled-fill);
   box-shadow: none;
   cursor: not-allowed;
 }
@@ -380,7 +426,7 @@ h2 {
 
 .success-button {
   padding: 0.8rem 1.25rem;
-  color: var(--ink);
+  color: var(--on-accent);
   background: var(--mint);
 }
 
@@ -425,7 +471,7 @@ h2 {
   height: 6rem;
   place-items: center;
   border-radius: 50%;
-  color: var(--ink);
+  color: var(--on-accent);
   background: var(--sun);
   font-size: 4rem;
   font-weight: 900;
@@ -444,6 +490,8 @@ h2 {
 .picture-card img {
   width: min(70vw, 19rem);
   height: min(70vw, 19rem);
+  border-radius: 1rem;
+  background: var(--art-plate);
   object-fit: contain;
 }
 
@@ -467,7 +515,7 @@ h2 {
   place-items: center;
   border: 0.2rem solid var(--ink);
   color: var(--paper);
-  background: repeating-linear-gradient(45deg, var(--sky-deep) 0 1rem, var(--ink) 1rem 2rem);
+  background: repeating-linear-gradient(45deg, var(--sky-deep) 0 1rem, var(--stripe) 1rem 2rem);
   box-shadow: 0.4rem 0.4rem 0 var(--ink);
   transform: rotate(-2deg);
 }
@@ -477,9 +525,9 @@ h2 {
   width: 5rem;
   height: 5rem;
   place-items: center;
-  border: 0.18rem solid var(--ink);
+  border: 0.18rem solid var(--on-accent);
   border-radius: 50%;
-  color: var(--ink);
+  color: var(--on-accent);
   background: var(--sun);
   font-size: 3rem;
   font-weight: 900;
@@ -543,11 +591,11 @@ dialog {
   border-radius: var(--radius);
   color: var(--ink);
   background: var(--paper);
-  box-shadow: 0 2rem 5rem rgba(10, 30, 48, 0.35);
+  box-shadow: 0 2rem 5rem var(--dialog-shadow);
 }
 
 dialog::backdrop {
-  background: rgba(10, 30, 48, 0.68);
+  background: var(--backdrop);
   backdrop-filter: blur(0.2rem);
 }
 
@@ -622,6 +670,8 @@ dialog::backdrop {
 .card-setting img {
   width: 2.5rem;
   height: 2.5rem;
+  border-radius: 0.4rem;
+  background: var(--art-plate);
   object-fit: contain;
 }
 
@@ -670,15 +720,26 @@ dialog::backdrop {
   font-size: 0.88rem;
 }
 
+.credit-copy a {
+  color: inherit;
+  text-decoration-color: var(--sky-deep);
+  text-underline-offset: 0.15em;
+}
+
+.credit-copy a:hover,
+.credit-copy a:focus-visible {
+  text-decoration-color: currentcolor;
+}
+
 .noscript-message {
   position: fixed;
   inset: 1rem;
   display: grid;
   place-items: center;
   padding: 2rem;
-  border: 0.2rem solid var(--ink);
+  border: 0.2rem solid var(--on-accent);
   border-radius: 1rem;
-  color: var(--ink);
+  color: var(--on-accent);
   background: var(--sun);
   font-size: 1.2rem;
   font-weight: 900;

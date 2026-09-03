@@ -1,0 +1,31 @@
+name: Audit
+
+# The audit is fail-closed and makes no network requests: it re-verifies the
+# card hashes, the Content-Security-Policy, the service-worker allowlist, and
+# the cache revision against the files actually committed. The asset builder is
+# deliberately not run here — fetching new artwork is a reviewed, manual step.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Audit the published site
+        run: python tools/audit_site.py
