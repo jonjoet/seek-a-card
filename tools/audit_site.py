@@ -94,11 +94,12 @@ def audit_runtime(cards: list[dict]) -> None:
         if directive not in index:
             fail(f"Missing CSP directive: {directive}")
 
-    app = (DOCS / "app.js").read_text(encoding="utf-8")
     forbidden_code = ["innerHTML", "outerHTML", "insertAdjacentHTML", "eval(", "new Function", "XMLHttpRequest", "WebSocket", "EventSource"]
-    for token in forbidden_code:
-        if token in app:
-            fail(f"Forbidden runtime code: {token}")
+    for script in ("app.js", "theme.js"):
+        source = (DOCS / script).read_text(encoding="utf-8")
+        for token in forbidden_code:
+            if token in source:
+                fail(f"Forbidden runtime code in {script}: {token}")
 
     for path in DOCS.iterdir():
         if path.is_file() and path.suffix in {".html", ".css", ".js", ".webmanifest"}:
@@ -109,7 +110,7 @@ def audit_runtime(cards: list[dict]) -> None:
 
     safe_assets = extract_frozen_json(DOCS / "asset-list.js", "self.SEEK_A_CARD_SAFE_ASSETS")
     expected = {
-        "./", "./index.html", "./styles.css", "./cards.js", "./app.js",
+        "./", "./index.html", "./styles.css", "./theme.js", "./cards.js", "./app.js",
         "./service-worker.js", "./asset-list.js", "./manifest.webmanifest",
         "./icon.svg", "./maskable-icon.svg",
         "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png",
@@ -144,8 +145,41 @@ def audit_cache_revision() -> None:
         )
 
 
+def audit_theme_palettes() -> None:
+    """The device-preference and explicit-override dark palettes must match.
+
+    They are two separate rules because a media query cannot also express the
+    override, so nothing but this check stops one from being updated alone and
+    leaving the two appearance settings quietly rendering different colours.
+    """
+    css = (DOCS / "styles.css").read_text(encoding="utf-8")
+    blocks = {}
+    for label, selector in (
+        ("device", r':root:not\(\[data-theme="light"\]\)\s*\{'),
+        ("override", r':root\[data-theme="dark"\]\s*\{'),
+    ):
+        match = re.search(selector + r"(.*?)\n\s*\}", css, re.DOTALL)
+        if not match:
+            fail(f"Could not find the {label} dark palette in styles.css")
+        blocks[label] = {
+            line.strip().rstrip(";")
+            for line in match.group(1).splitlines()
+            if line.strip().startswith("--")
+        }
+    if not blocks["device"]:
+        fail("The device dark palette is empty")
+    if blocks["device"] != blocks["override"]:
+        only_device = blocks["device"] - blocks["override"]
+        only_override = blocks["override"] - blocks["device"]
+        fail(
+            "The two dark palettes in styles.css have diverged. "
+            f"Only in the device palette: {sorted(only_device) or 'none'}. "
+            f"Only in the override palette: {sorted(only_override) or 'none'}."
+        )
+
+
 def check_javascript() -> None:
-    for filename in ["app.js", "cards.js", "asset-list.js", "service-worker.js"]:
+    for filename in ["app.js", "theme.js", "cards.js", "asset-list.js", "service-worker.js"]:
         result = subprocess.run(
             ["node", "--check", str(DOCS / filename)],
             check=False,
@@ -196,6 +230,7 @@ def main() -> None:
     audit_hashes(cards)
     audit_runtime(cards)
     audit_cache_revision()
+    audit_theme_palettes()
     check_javascript()
     make_contact_sheet(cards)
     print(f"Audit passed: {len(cards)} cards, exact local allowlist, valid hashes and scripts")

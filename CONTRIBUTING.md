@@ -27,6 +27,8 @@ links allowlisted in `tools/audit_site.py`, which exist to satisfy the CC BY-SA
 4.0 terms for the bundled artwork. Adding another entry to that allowlist needs
 the same scrutiny as any other content change.
 
-Colours belong in the token block at the top of `docs/styles.css`, which has a
-light and a dark definition. A literal colour written further down the file will
-be wrong in one of the two themes.
+Colours belong in the token block at the top of `docs/styles.css`. A literal
+colour written further down the file will be wrong in one of the two themes.
+The dark palette is written twice — once for the device preference and once for
+the explicit override chosen in Appearance — and the audit fails if the two copies
+diverge, so change both together.

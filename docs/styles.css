@@ -37,8 +37,11 @@
   font-synthesis: none;
 }
 
+/* Dark palette. The two blocks below must stay identical: the first follows the
+   device, the second is the explicit override from Appearance in Parent
+   settings. tools/audit_site.py fails the build if they diverge. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --ink: #eaf3fb;
     --ink-soft: #a5b8ca;
     --paper: #16283a;
@@ -63,6 +66,35 @@
     --art-plate: #f2f7fb;
   }
 }
+
+:root[data-theme="dark"] {
+  --ink: #eaf3fb;
+  --ink-soft: #a5b8ca;
+  --paper: #16283a;
+  --sky: #24455f;
+  --sky-deep: #3f7fa3;
+  --coral-dark: #ff8f9b;
+  --mint-dark: #6fd8bd;
+  --line: #33506a;
+  --shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+  --canvas: #0b1a29;
+  --glow-warm: rgba(255, 209, 102, 0.14);
+  --glow-cool: rgba(95, 198, 173, 0.1);
+  --surface: rgba(24, 44, 63, 0.94);
+  --surface-soft: rgba(24, 44, 63, 0.88);
+  --card-border: rgba(234, 243, 251, 0.16);
+  --fan-shadow: rgba(0, 0, 0, 0.45);
+  --stripe: #0f2233;
+  --disabled-border: #46586a;
+  --disabled-fill: #3a4a5a;
+  --dialog-shadow: rgba(0, 0, 0, 0.6);
+  --backdrop: rgba(4, 12, 20, 0.72);
+  --art-plate: #f2f7fb;
+}
+
+/* Keep form controls and scrollbars with the chosen theme, not the device's. */
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 
 * {
   box-sizing: border-box;
@@ -335,6 +367,22 @@ h2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.65rem;
+}
+
+.choice-row-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.theme-group {
+  margin: 0 0 1rem;
+  padding: 0.9rem 1rem 1rem;
+  box-shadow: none;
+}
+
+.theme-group .choice-button {
+  min-height: 3.25rem;
+  place-content: center;
+  text-align: center;
 }
 
 .choice-button {

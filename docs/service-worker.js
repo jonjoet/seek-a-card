@@ -11,6 +11,7 @@ const appShell = [
   "./",
   "./index.html",
   "./styles.css",
+  "./theme.js",
   "./cards.js",
   "./app.js",
   "./manifest.webmanifest",

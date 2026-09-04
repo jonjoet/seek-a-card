@@ -36,7 +36,9 @@ The published app is deliberately static and closed:
 
 See [SECURITY.md](SECURITY.md) for the threat model and maintenance rules.
 
-The app follows the device's light or dark appearance, and is installable: the
+The app follows the device's light or dark appearance, or can be pinned to
+either from **Appearance** in Parent settings; the choice is stored on that
+device only. It is installable: the
 manifest ships raster and vector icons, including an Apple touch icon for iOS
 home screens. Inside a round, the system back gesture ends the round and returns
 to deck setup rather than closing the app, and it never steps back onto a

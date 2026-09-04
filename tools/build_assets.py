@@ -185,7 +185,7 @@ CARD_GROUPS = {
 # Every file the service worker precaches apart from the generated asset list,
 # which carries the revision and so cannot contribute to it.
 SHELL_FILES = (
-    "index.html", "styles.css", "app.js", "cards.js", "service-worker.js",
+    "index.html", "styles.css", "theme.js", "app.js", "cards.js", "service-worker.js",
     "manifest.webmanifest", "icon.svg", "maskable-icon.svg",
     "icon-192.png", "icon-512.png", "apple-touch-icon.png",
 )
@@ -342,7 +342,7 @@ def main() -> None:
     (DOCS / "cards.js").write_text(cards_js, encoding="utf-8")
 
     safe_assets = [
-        "./", "./index.html", "./styles.css", "./cards.js", "./app.js",
+        "./", "./index.html", "./styles.css", "./theme.js", "./cards.js", "./app.js",
         "./service-worker.js", "./asset-list.js",
         "./manifest.webmanifest", "./icon.svg", "./maskable-icon.svg",
         "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png",

@@ -14,6 +14,12 @@
     "Shapes & colors": "◆"
   });
   const storageKey = "seek-a-card:settings:v1";
+  // Must match the values docs/theme.js reads and the palettes in styles.css.
+  const themeColors = Object.freeze({ light: "#17324d", dark: "#0b1a29" });
+  const darkQuery = typeof window.matchMedia === "function"
+    ? window.matchMedia("(prefers-color-scheme: dark)")
+    : null;
+  let managedThemeColor = null;
   const views = [...document.querySelectorAll(".view")];
   const state = loadState();
 
@@ -53,6 +59,7 @@
     cardSearch: document.getElementById("card-search"),
     cardSettingsList: document.getElementById("card-settings-list"),
     settingsSummary: document.getElementById("settings-summary"),
+    themeControls: document.getElementById("theme-controls"),
     showAllButton: document.getElementById("show-all-button"),
     clearHistoryButton: document.getElementById("clear-history-button")
   };
@@ -72,6 +79,7 @@
     return {
       selectedCategories: [...categories],
       difficulty: "easy",
+      theme: "system",
       disabledIds: [],
       recentIds: []
     };
@@ -89,6 +97,7 @@
       return {
         selectedCategories: selectedCategories.length ? selectedCategories : defaults.selectedCategories,
         difficulty: parsed.difficulty === "all" ? "all" : "easy",
+        theme: parsed.theme === "light" || parsed.theme === "dark" ? parsed.theme : "system",
         disabledIds: Array.isArray(parsed.disabledIds)
           ? [...new Set(parsed.disabledIds.filter((id) => knownIds.has(id)))].slice(0, cards.length)
           : [],
@@ -107,6 +116,32 @@
     } catch (_error) {
       // The game remains usable when storage is blocked or full.
     }
+  }
+
+  function resolvedTheme() {
+    if (state.theme === "light" || state.theme === "dark") return state.theme;
+    return darkQuery && darkQuery.matches ? "dark" : "light";
+  }
+
+  function applyTheme() {
+    const root = document.documentElement;
+    if (state.theme === "system") root.removeAttribute("data-theme");
+    else root.setAttribute("data-theme", state.theme);
+
+    // The static <meta media="..."> pair in the document answers the device
+    // preference only, so once scripting is available one managed tag replaces
+    // them and follows the chosen theme instead.
+    if (!managedThemeColor) {
+      document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => meta.remove());
+      managedThemeColor = document.createElement("meta");
+      managedThemeColor.setAttribute("name", "theme-color");
+      document.head.append(managedThemeColor);
+    }
+    managedThemeColor.setAttribute("content", themeColors[resolvedTheme()]);
+
+    document.querySelectorAll("[data-theme-choice]").forEach((button) => {
+      button.setAttribute("aria-pressed", String(button.dataset.themeChoice === state.theme));
+    });
   }
 
   function showView(id, fromHistory) {
@@ -369,6 +404,20 @@
       saveState();
       updateSetupControls();
     });
+    elements.themeControls.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-theme-choice]");
+      if (!button) return;
+      const choice = button.dataset.themeChoice;
+      state.theme = choice === "light" || choice === "dark" ? choice : "system";
+      saveState();
+      applyTheme();
+    });
+    if (darkQuery && typeof darkQuery.addEventListener === "function") {
+      darkQuery.addEventListener("change", () => {
+        // Only the theme colour needs refreshing; the stylesheet follows on its own.
+        if (state.theme === "system") applyTheme();
+      });
+    }
     elements.startButton.addEventListener("click", beginRound);
     elements.readyButton.addEventListener("click", prepareSecretCard);
     elements.hideButton.addEventListener("click", () => {
@@ -441,6 +490,7 @@
     }
   }
 
+  applyTheme();
   createCategoryControls();
   updateSetupControls();
   registerEvents();
