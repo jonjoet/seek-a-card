@@ -22,7 +22,11 @@ The published app is deliberately static and closed:
   accounts, database, or server-side code.
 - A restrictive Content Security Policy blocks network connections and permits
   images, scripts, and styles only from the app's own origin.
-- The service worker caches only paths in the generated local asset allowlist.
+- The service worker caches only paths in the generated local asset allowlist,
+  and precaches every one of them, so a device that has loaded the app once can
+  play the whole deck with no network at all. Installation is all or nothing: a
+  worker that could not store the complete allowlist never activates, so a
+  partial download can never replace a complete offline deck.
 - Card names are written with `textContent`; card data is never interpreted as
   HTML.
 - Parent settings contain only known card IDs and are stored locally on the
@@ -31,6 +35,24 @@ The published app is deliberately static and closed:
   externally referenced SVG content.
 
 See [SECURITY.md](SECURITY.md) for the threat model and maintenance rules.
+
+The app follows the device's light or dark appearance, and is installable: the
+manifest ships raster and vector icons, including an Apple touch icon for iOS
+home screens. Inside a round, the system back gesture ends the round and returns
+to deck setup rather than closing the app, and it never steps back onto a
+revealed card.
+
+## Checks
+
+`.github/workflows/audit.yml` runs `tools/audit_site.py` on every push and pull
+request. The audit needs no network access and fails closed.
+
+Note that changing any precached file — `docs/app.js`, `docs/styles.css`,
+`docs/index.html`, an icon, the service worker itself — means re-running
+`python tools/build_assets.py` so the service-worker cache revision changes.
+Without that, installed devices keep serving the previous build forever, because
+the worker's own bytes never change and no update check is ever triggered. The
+audit enforces this.
 
 ## GitHub Pages
 

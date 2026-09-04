@@ -109,17 +109,40 @@
     }
   }
 
-  function showView(id) {
+  function showView(id, fromHistory) {
     activeView = id;
     views.forEach((view) => {
       view.hidden = view.id !== id;
     });
     elements.homeButton.hidden = id === "start-view";
+    if (id === "start-view") {
+      // Leaving a round must not keep a revealable card in memory.
+      currentCard = null;
+      updateSetupControls();
+    }
+    if (!fromHistory) syncHistory(id);
     window.scrollTo({ top: 0, behavior: "instant" });
     const heading = document.querySelector(`#${id} h1`);
     if (heading) {
       heading.setAttribute("tabindex", "-1");
       heading.focus({ preventScroll: true });
+    }
+  }
+
+  // A round occupies exactly one history entry, so the system back gesture ends
+  // the round instead of leaving the app. Back never returns to a revealed
+  // card: every in-round view unwinds straight to deck setup.
+  function syncHistory(id) {
+    const inRound = id !== "start-view";
+    const hasEntry = Boolean(window.history.state && window.history.state.seekRound);
+    try {
+      if (inRound && !hasEntry) {
+        window.history.pushState({ seekRound: true }, "");
+      } else if (!inRound && hasEntry) {
+        window.history.back();
+      }
+    } catch (_error) {
+      // Opening the page from a file:// URL disallows history entries.
     }
   }
 
@@ -264,7 +287,7 @@
     elements.cardSearch.value = "";
     renderCardSettings("");
     elements.settingsDialog.showModal();
-    elements.cardSearch.focus();
+    elements.settingsDialog.focus();
   }
 
   function renderCardSettings(query) {
@@ -284,6 +307,8 @@
       image.alt = "";
       image.width = 40;
       image.height = 40;
+      image.loading = "lazy";
+      image.decoding = "async";
 
       const text = document.createElement("span");
       text.className = "card-setting-text";
@@ -311,7 +336,11 @@
     }
 
     elements.cardSettingsList.replaceChildren(fragment);
-    const visibleCount = cards.length - disabled.size;
+    updateSettingsSummary();
+  }
+
+  function updateSettingsSummary() {
+    const visibleCount = cards.length - state.disabledIds.length;
     elements.settingsSummary.textContent = `${visibleCount} of ${cards.length} cards are available`;
   }
 
@@ -321,7 +350,9 @@
     else disabled.add(cardId);
     state.disabledIds = cards.map((card) => card.id).filter((id) => disabled.has(id));
     saveState();
-    renderCardSettings(elements.cardSearch.value);
+    // The checkbox already shows its new value, so rebuilding the whole list
+    // here would only throw away the row the parent is still standing on.
+    updateSettingsSummary();
     updateSetupControls();
   }
 
@@ -360,12 +391,19 @@
     elements.homeButton.addEventListener("click", () => showView("start-view"));
     elements.settingsButton.addEventListener("click", openSettings);
     elements.infoButton.addEventListener("click", () => elements.infoDialog.showModal());
-    elements.cardSearch.addEventListener("input", () => renderCardSettings(elements.cardSearch.value));
+    let searchTimer = 0;
+    elements.cardSearch.addEventListener("input", () => {
+      window.clearTimeout(searchTimer);
+      searchTimer = window.setTimeout(() => renderCardSettings(elements.cardSearch.value), 120);
+    });
     elements.showAllButton.addEventListener("click", () => {
       state.disabledIds = [];
       saveState();
       renderCardSettings(elements.cardSearch.value);
       updateSetupControls();
+    });
+    elements.settingsDialog.addEventListener("close", () => {
+      window.clearTimeout(searchTimer);
     });
     elements.clearHistoryButton.addEventListener("click", () => {
       state.recentIds = [];
@@ -384,7 +422,14 @@
       });
     });
     window.addEventListener("popstate", () => {
-      if (activeView !== "start-view") showView("start-view");
+      const openDialog = [elements.settingsDialog, elements.infoDialog].find((dialog) => dialog.open);
+      if (openDialog) {
+        // Back closes the dialog first; the round keeps its own history entry.
+        openDialog.close();
+        if (activeView !== "start-view") syncHistory(activeView);
+        return;
+      }
+      if (activeView !== "start-view") showView("start-view", true);
     });
   }
 
@@ -399,5 +444,10 @@
   createCategoryControls();
   updateSetupControls();
   registerEvents();
+  try {
+    window.history.replaceState({ seekRound: false }, "");
+  } catch (_error) {
+    // Opening the page from a file:// URL disallows history entries.
+  }
   registerServiceWorker();
 })();

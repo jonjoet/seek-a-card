@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import sys
 import time
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -181,6 +182,14 @@ CARD_GROUPS = {
     ],
 }
 
+# Every file the service worker precaches apart from the generated asset list,
+# which carries the revision and so cannot contribute to it.
+SHELL_FILES = (
+    "index.html", "styles.css", "app.js", "cards.js", "service-worker.js",
+    "manifest.webmanifest", "icon.svg", "maskable-icon.svg",
+    "icon-192.png", "icon-512.png", "apple-touch-icon.png",
+)
+
 ALLOWED_TAGS = {
     "svg", "g", "path", "circle", "ellipse", "line", "polyline", "polygon", "rect"
 }
@@ -195,6 +204,30 @@ def slugify(label: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")
 
 
+def load_recorded_hashes() -> dict[str, str]:
+    path = ROOT / "ASSET_HASHES.json"
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def compute_cache_revision(card_hashes: dict[str, str]) -> str:
+    """Derive the service-worker cache name from everything it serves.
+
+    Card data alone is not enough. If a change to app.js, styles.css, or
+    index.html leaves the revision untouched, the worker's own bytes never
+    change either, so no update check fires and already-installed clients keep
+    serving the previous build from the old cache indefinitely.
+    """
+    digest = hashlib.sha256()
+    for name in SHELL_FILES:
+        data = (DOCS / name).read_bytes()
+        digest.update(f"{name}:{hashlib.sha256(data).hexdigest()}\n".encode("utf-8"))
+    for path, file_hash in sorted(card_hashes.items()):
+        digest.update(f"{path}:{file_hash}\n".encode("utf-8"))
+    return digest.hexdigest()[:12]
+
+
 def validate_svg(text: str, expected_hex: str) -> None:
     if FORBIDDEN_TEXT.search(text):
         raise ValueError(f"Forbidden SVG content in {expected_hex}")
@@ -202,7 +235,12 @@ def validate_svg(text: str, expected_hex: str) -> None:
     for element in root.iter():
         tag = element.tag.rsplit("}", 1)[-1]
         if tag not in ALLOWED_TAGS:
-            raise ValueError(f"Unexpected <{tag}> in {expected_hex}")
+            raise ValueError(
+                f"Unexpected <{tag}> in {expected_hex}. Only flat shape elements "
+                f"are allowed ({', '.join(sorted(ALLOWED_TAGS))}), so upstream "
+                "artwork built from gradients, masks, clip paths, or text cannot "
+                "be added to the deck."
+            )
         for name, value in element.attrib.items():
             local_name = name.rsplit("}", 1)[-1].lower()
             if local_name.startswith("on") or local_name in {"href", "src"}:
@@ -211,29 +249,37 @@ def validate_svg(text: str, expected_hex: str) -> None:
                 raise ValueError(f"External reference in {expected_hex}")
 
 
-def download_svg(hexcode: str) -> bytes:
+def download_svg(hexcode: str, recorded: dict[str, str]) -> bytes:
     destination = ASSETS / f"{hexcode}.svg"
-    if destination.exists():
+    expected = recorded.get(f"docs/assets/cards/{hexcode}.svg")
+    if destination.exists() and expected:
         data = destination.read_bytes()
+        actual = hashlib.sha256(data).hexdigest()
+        if actual != expected:
+            raise ValueError(
+                f"docs/assets/cards/{hexcode}.svg does not match its reviewed hash "
+                f"(expected {expected}, found {actual}). Restore it from git, or "
+                "delete it to refetch from the pinned upstream revision."
+            )
         validate_svg(data.decode("utf-8"), hexcode)
         return data
+
+    # With no reviewed hash on record there is nothing to trust an existing file
+    # against, so always take the bytes from the pinned upstream revision.
     request = urllib.request.Request(
         f"{OPENMOJI_BASE}/{hexcode}.svg",
         headers={"User-Agent": "seek-a-card-build/1.0"},
     )
-    last_error = None
+    data = None
     for attempt in range(3):
         try:
             with urllib.request.urlopen(request, timeout=45) as response:
                 data = response.read()
             break
-        except Exception as error:
-            last_error = error
+        except Exception:
             if attempt == 2:
                 raise
             time.sleep(attempt + 1)
-    if last_error is not None and "data" not in locals():
-        raise last_error
     text = data.decode("utf-8")
     validate_svg(text, hexcode)
     destination.write_bytes(data)
@@ -260,9 +306,10 @@ def main() -> None:
     for stale_asset in ASSETS.glob("*.svg"):
         if stale_asset.stem not in allowed_hex:
             stale_asset.unlink()
+    recorded = load_recorded_hashes()
     downloaded = {}
     with ThreadPoolExecutor(max_workers=20) as executor:
-        futures = {executor.submit(download_svg, hexcode): hexcode for hexcode in all_hex}
+        futures = {executor.submit(download_svg, hexcode, recorded): hexcode for hexcode in all_hex}
         for future in as_completed(futures):
             hexcode = futures[future]
             downloaded[hexcode] = future.result()
@@ -298,10 +345,10 @@ def main() -> None:
         "./", "./index.html", "./styles.css", "./cards.js", "./app.js",
         "./service-worker.js", "./asset-list.js",
         "./manifest.webmanifest", "./icon.svg", "./maskable-icon.svg",
+        "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png",
         *[f"./assets/cards/{card['artwork']}.svg" for card in cards],
     ]
-    revision_material = cards_js + "".join(f"{path}:{digest}\n" for path, digest in sorted(hashes.items()))
-    cache_revision = hashlib.sha256(revision_material.encode("utf-8")).hexdigest()[:12]
+    cache_revision = compute_cache_revision(hashes)
     asset_list_js = (
         "/* Generated by tools/build_assets.py. */\n"
         f'self.SEEK_A_CARD_CACHE_NAME = "seek-a-card-{cache_revision}";\n'
@@ -342,4 +389,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (ValueError, OSError) as error:
+        print(f"BUILD FAILED: {error}", file=sys.stderr)
+        raise SystemExit(1)
