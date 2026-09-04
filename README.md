@@ -24,7 +24,9 @@ The published app is deliberately static and closed:
   images, scripts, and styles only from the app's own origin.
 - The service worker caches only paths in the generated local asset allowlist,
   and precaches every one of them, so a device that has loaded the app once can
-  play the whole deck with no network at all.
+  play the whole deck with no network at all. Installation is all or nothing: a
+  worker that could not store the complete allowlist never activates, so a
+  partial download can never replace a complete offline deck.
 - Card names are written with `textContent`; card data is never interpreted as
   HTML.
 - Parent settings contain only known card IDs and are stored locally on the
